@@ -184,7 +184,7 @@ mrb_editline_set_addfn(mrb_state *mrb, mrb_value self)
   char *nameptr, *helpptr;
 
   ary = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "userfunctions"));
-  idx = mrb_ary_len(mrb, ary);
+  idx = RARRAY_LEN(ary);
   if (idx == USERFUNCTIONS) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "too many user-defined functions");
   }
