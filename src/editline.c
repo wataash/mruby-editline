@@ -229,10 +229,10 @@ mrb_value
 mrb_editline_set_prompt(mrb_state *mrb, mrb_value self)
 {
   struct mrb_editline *mel;
-  mrb_value ch, esc, str;
+  mrb_value esc, str;
 
   mel = DATA_PTR(self);
-  ch = mrb_nil_value();
+  esc = mrb_nil_value();
   mrb_get_args(mrb, "S|S", &str, &esc);
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "prompt"), str);
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "prompt_esc"), esc);
