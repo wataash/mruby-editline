@@ -32,6 +32,11 @@ end
     won't fit, and 0 otherwise. (`el_insertstr`)
 - `#line -> [String, Fixnum]`
   - Return the current line and the position of cursor. (`el_line`)
+- `#push(str)`
+  - Pushes str back onto the input stream.  This is used by the macro
+    expansion mechanism.  Refer to the description of bind -s in
+    [editrc(5)](http://netbsd.gw.com/cgi-bin/man-cgi?editrc++NetBSD-current)
+    for more information.
 - `#set_addfn(name, help, &proc)`
   - add an user defined function `name`.  `help` is a description of it.
     `proc` is a callback function.  The return value of `proc` should be
