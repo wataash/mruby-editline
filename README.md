@@ -25,6 +25,8 @@ end
   - Read a line from the tty.  Returns the line read if successful, returns
     nil if no characters were read, or raises a RuntimeError if an error
     occurred. (`el_gets`)
+- `#deletestr(str)`
+  - Delete `count` characters before the cursor.
 - `#insertstr(str) -> Fixnum`
   - Insert str into the line at the cursor.  Returns -1 if str is empty or
     won't fit, and 0 otherwise. (`el_insertstr`)

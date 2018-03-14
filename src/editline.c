@@ -116,6 +116,18 @@ mrb_editline_init(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
+mrb_editline_deletestr(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_editline *mel;
+  mrb_int count;
+
+  mel = DATA_PTR(self);
+  mrb_get_args(mrb, "i", &count);
+  el_deletestr(mel->e, count);
+  return mrb_nil_value();
+}
+
+mrb_value
 mrb_editline_gets(mrb_state *mrb, mrb_value self)
 {
   HistEvent hev;
@@ -251,6 +263,7 @@ mrb_mruby_editline_gem_init(mrb_state *mrb)
 
   cls = mrb_define_class(mrb, "EditLine", mrb->object_class);
   MRB_SET_INSTANCE_TT(cls, MRB_TT_DATA);
+  mrb_define_method(mrb, cls, "deletestr", mrb_editline_deletestr, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, cls, "gets", mrb_editline_gets, MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "initialize", mrb_editline_init, MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "insertstr", mrb_editline_insertstr, MRB_ARGS_REQ(1));
