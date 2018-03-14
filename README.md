@@ -51,7 +51,7 @@ end
     - Note: ANSI escape sequence in prompt string does not work as expected
       due to a bug in editline library.
 
-(Descriptions are from [editline(3) manual page](http://netbsd.gw.com/cgi-bin/man-cgi?editline++NetBSD-current) library.)
+(Descriptions above are from [editline(3) manual page](http://netbsd.gw.com/cgi-bin/man-cgi?editline++NetBSD-current).)
 
 
 ## License
