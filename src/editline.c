@@ -42,6 +42,8 @@ mrb_editline_free(mrb_state *mrb, void *ptr)
 const static struct mrb_data_type mrb_editline_type = { "EditLine", mrb_editline_free };
 
 static unsigned char userfunction_callback(EditLine *e, int ch, int no);
+static mrb_noreturn void mrb_history_raise(mrb_state *mrb, const HistEvent *hev);
+
 
 #define DEFINECALLBACK(i) \
   static unsigned char callback##i (EditLine *e, int ch) \
@@ -268,6 +270,55 @@ mrb_editline_set_prompt(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+static mrb_noreturn void
+mrb_history_raise(mrb_state *mrb, const HistEvent *hev)
+{
+  struct RClass *cls;
+  mrb_value argv[2];
+
+  cls = mrb_class_get(mrb, "HistoryError");
+  if (cls == NULL) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "no HistoryError class???");
+  }
+  argv[0] = mrb_fixnum_value(hev->num);
+  argv[1] = mrb_str_new_cstr(mrb, hev->str);
+  mrb_exc_raise(mrb, mrb_obj_new(mrb, cls, 2, argv));
+}
+
+mrb_value
+mrb_editline_history_load(mrb_state *mrb, mrb_value self)
+{
+  HistEvent hev;
+  struct mrb_editline *mel;
+  int ret;
+  char *cp;
+
+  mel = DATA_PTR(self);
+  mrb_get_args(mrb, "z", &cp);
+  ret = history(mel->h, &hev, H_LOAD, cp);
+  if (ret == -1) {
+    mrb_history_raise(mrb, &hev);
+  }
+  return mrb_fixnum_value(ret);
+}
+
+mrb_value
+mrb_editline_history_save(mrb_state *mrb, mrb_value self)
+{
+  HistEvent hev;
+  struct mrb_editline *mel;
+  int ret;
+  char *cp;
+
+  mel = DATA_PTR(self);
+  mrb_get_args(mrb, "z", &cp);
+  ret = history(mel->h, &hev, H_SAVE, cp);
+  if (ret == -1) {
+    mrb_history_raise(mrb, &hev);
+  }
+  return mrb_fixnum_value(ret);
+}
+
 void
 mrb_mruby_editline_gem_init(mrb_state *mrb)
 {
@@ -284,6 +335,9 @@ mrb_mruby_editline_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, cls, "set_addfn", mrb_editline_set_addfn, MRB_ARGS_REQ(3));
   mrb_define_method(mrb, cls, "set_bind", mrb_editline_set_bind, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, cls, "set_prompt", mrb_editline_set_prompt, MRB_ARGS_ARG(1, 1));
+
+  mrb_define_method(mrb, cls, "history_load", mrb_editline_history_load, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, cls, "history_save", mrb_editline_history_save, MRB_ARGS_REQ(1));
 
 #define define_el_const(SYM) mrb_define_const(mrb, cls, #SYM, mrb_fixnum_value(SYM));
   define_el_const(CC_NORM);
