@@ -50,6 +50,19 @@ end
     that contains the prompt. (`el_set(EL_PROMPT)`, `el_set(EL_PROMPT_ESC)`)
     - Note: ANSI escape sequence in prompt string does not work as expected
       due to a bug in editline library.
+- `#set_setty(*args) -> Fixnum`
+  - Perform the setty builtin command.  Refer to editrc(5) for more
+    information. (`el_set(EL_SETTY)`)
+- `#set_signal(flag) -> Fixnum`
+  - If flag is non-zero, editline will install its own signal handler
+    for the following signals when reading command input: SIGCONT,
+    SIGHUP, SIGINT, SIGQUIT, SIGSTOP, SIGTERM, SIGTSTP, and SIGWINCH.
+    Otherwise, the current signal handlers will be used.
+    (`el_set(EL_SIGNAL)`)
+- `#get_gettc(name) -> String|Fixnum`
+  - If name is a valid termcap(5) capability, return the current value of
+    that capability. (`el_get(EL_GETTC)`)
+    - If not, raises an ArgumentError.
 
 (Descriptions above are from [editline(3) manual page](http://netbsd.gw.com/cgi-bin/man-cgi?editline++NetBSD-current).)
 

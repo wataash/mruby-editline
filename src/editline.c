@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include <histedit.h>
 
@@ -151,6 +152,42 @@ mrb_editline_gets(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
+mrb_editline_get_gettc(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_editline *mel;
+  int i, val_is_int, tval;
+  char *cstr, *tstr;
+
+  // from tval in temrnal.c:
+  static const char *tvalnames[] = {
+    "am", "pt", "li", "co", "km", "xt", "xn", "MT", NULL
+  };
+
+  mel = DATA_PTR(self);
+  mrb_get_args(mrb, "z", &cstr);
+
+  val_is_int = 0;
+  for (i = 0; tvalnames[i] != NULL; i++) {
+    if (strcmp(cstr, tvalnames[i]) == 0) {
+      val_is_int = 1;
+      break;
+    }
+  }
+
+  if (val_is_int) {
+    if (el_get(mel->e, EL_GETTC, cstr, &tval) == -1) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid capability name");
+    }
+    return mrb_fixnum_value((mrb_int)tval);
+  } else {
+    if (el_get(mel->e, EL_GETTC, cstr, &tstr) == -1) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid capability name");
+    }
+    return mrb_str_new_cstr(mrb, tstr);
+  }
+}
+
+mrb_value
 mrb_editline_insertstr(mrb_state *mrb, mrb_value self)
 {
   struct mrb_editline *mel;
@@ -270,6 +307,47 @@ mrb_editline_set_prompt(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+mrb_value
+mrb_editline_set_signal(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_editline *mel;
+  mrb_int flag;
+  int ret;
+
+  mel = DATA_PTR(self);
+  mrb_get_args(mrb, "i", &flag);
+  ret = el_set(mel->e, EL_SIGNAL, (int)flag);
+  return mrb_fixnum_value((mrb_int)ret);
+}
+
+mrb_value
+mrb_editline_set_setty(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_editline *mel;
+  mrb_value *argv;
+  mrb_int argc, i;
+  int ai, ret;
+  const char *cargv[16];
+
+  ai = mrb_gc_arena_save(mrb);
+  mel = DATA_PTR(self);
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc >= 17) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "too many arguments (max is 16)");
+  }
+  for (i = 0; i < argc; i++) {
+    cargv[i] = mrb_str_to_cstr(mrb, mrb_str_to_str(mrb, argv[i]));
+  }
+  for (; i < 16; i++) {
+    cargv[i] = NULL;
+  }
+  ret = el_set(mel->e, EL_SETTY, cargv[0], cargv[1], cargv[2], cargv[3],
+      cargv[4], cargv[5], cargv[6], cargv[7], cargv[8], cargv[9], cargv[10],
+      cargv[11], cargv[12], cargv[13], cargv[14], cargv[15], NULL);
+  mrb_gc_arena_restore(mrb, ai);
+  return mrb_fixnum_value((mrb_int)ret);
+}
+
 static mrb_noreturn void
 mrb_history_raise(mrb_state *mrb, const HistEvent *hev)
 {
@@ -327,6 +405,7 @@ mrb_mruby_editline_gem_init(mrb_state *mrb)
   cls = mrb_define_class(mrb, "EditLine", mrb->object_class);
   MRB_SET_INSTANCE_TT(cls, MRB_TT_DATA);
   mrb_define_method(mrb, cls, "deletestr", mrb_editline_deletestr, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, cls, "get_gettc", mrb_editline_get_gettc, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, cls, "gets", mrb_editline_gets, MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "initialize", mrb_editline_init, MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "insertstr", mrb_editline_insertstr, MRB_ARGS_REQ(1));
@@ -335,6 +414,8 @@ mrb_mruby_editline_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, cls, "set_addfn", mrb_editline_set_addfn, MRB_ARGS_REQ(3));
   mrb_define_method(mrb, cls, "set_bind", mrb_editline_set_bind, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, cls, "set_prompt", mrb_editline_set_prompt, MRB_ARGS_ARG(1, 1));
+  mrb_define_method(mrb, cls, "set_signal", mrb_editline_set_signal, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, cls, "set_setty", mrb_editline_set_setty, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, cls, "history_load", mrb_editline_history_load, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, cls, "history_save", mrb_editline_history_save, MRB_ARGS_REQ(1));
