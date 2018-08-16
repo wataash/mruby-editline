@@ -137,6 +137,7 @@ mrb_editline_gets(mrb_state *mrb, mrb_value self)
   struct mrb_editline *mel;
   int count;
   const char *line;
+  size_t l, i;
 
   mel = DATA_PTR(self);
   line = el_gets(mel->e, &count);
@@ -147,7 +148,15 @@ mrb_editline_gets(mrb_state *mrb, mrb_value self)
       return mrb_nil_value();
     }
   }
-  history(mel->h, &hev, H_ENTER, line);
+
+  l = strlen(line);
+  for (i = 0; i < l; i++) {
+    if (isgraph(line[i])) {
+      history(mel->h, &hev, H_ENTER, line);
+      break;
+    }
+  }
+
   return mrb_str_new_cstr(mrb, line);
 }
 
