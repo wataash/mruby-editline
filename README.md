@@ -37,6 +37,11 @@ end
     expansion mechanism.  Refer to the description of bind -s in
     [editrc(5)](http://netbsd.gw.com/cgi-bin/man-cgi?editrc++NetBSD-current)
     for more information.
+- `#resize`
+  - Must be called if the terminal size changes.  If `#set_signal(flag)`
+    has been called with non-zero `flag`, then this is done automatically.
+    Otherwise, it's the responsibility of the application to call
+    `el_resize()` on the appropriate occasions. (`el_resize`)
 - `#set_addfn(name, help, &proc)`
   - add an user defined function `name`.  `help` is a description of it.
     `proc` is a callback function.  The return value of `proc` should be

@@ -237,6 +237,16 @@ mrb_editline_push(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+mrb_value
+mrb_editline_resize(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_editline *mel;
+
+  mel = DATA_PTR(self);
+  el_resize(mel->e);
+  return mrb_nil_value();
+}
+
 static char *
 cb_prompt(EditLine *e)
 {
@@ -421,6 +431,7 @@ mrb_mruby_editline_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, cls, "insertstr", mrb_editline_insertstr, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, cls, "line", mrb_editline_line, MRB_ARGS_REQ(0));
   mrb_define_method(mrb, cls, "push", mrb_editline_push, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, cls, "resize", mrb_editline_resize, MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "set_addfn", mrb_editline_set_addfn, MRB_ARGS_REQ(3));
   mrb_define_method(mrb, cls, "set_bind", mrb_editline_set_bind, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, cls, "set_prompt", mrb_editline_set_prompt, MRB_ARGS_ARG(1, 1));
