@@ -226,6 +226,29 @@ mrb_editline_line(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
+mrb_editline_parse(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_editline *mel;
+  mrb_int i, argc;
+  mrb_value ary;
+  int ret;
+  const char *cargv[16];
+
+  mel = DATA_PTR(self);
+  mrb_get_args(mrb, "A", &ary);
+  argc = mrb_ary_len(mrb, ary);
+  if (argc > 16) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "too many argments (max: 16)");
+  }
+  for (i = 0; i < argc; i++) {
+    mrb_value s = mrb_ary_ref(mrb, ary, i);
+    cargv[i] = mrb_string_value_cstr(mrb, &s);
+  }
+  ret = el_parse(mel->e, (int)argc, cargv);
+  return mrb_fixnum_value(ret);
+}
+
+mrb_value
 mrb_editline_push(mrb_state *mrb, mrb_value self)
 {
   struct mrb_editline *mel;
@@ -430,6 +453,7 @@ mrb_mruby_editline_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, cls, "initialize", mrb_editline_init, MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "insertstr", mrb_editline_insertstr, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, cls, "line", mrb_editline_line, MRB_ARGS_REQ(0));
+  mrb_define_method(mrb, cls, "parse", mrb_editline_parse, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, cls, "push", mrb_editline_push, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, cls, "resize", mrb_editline_resize, MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "set_addfn", mrb_editline_set_addfn, MRB_ARGS_REQ(3));
