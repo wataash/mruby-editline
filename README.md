@@ -32,6 +32,13 @@ end
     won't fit, and 0 otherwise. (`el_insertstr`)
 - `#line -> [String, Fixnum]`
   - Return the current line and the position of cursor. (`el_line`)
+- `#parse(argv) -> Fixnum`
+  - Parses the `argv` array to execute builtin editline commands.  If the
+    command is prefixed with "prog:" then el_parse() will only execute
+    the command if "prog" matches the prog argument supplied to el_init().
+    The return value is -1 if the command is unknown, 0 if there was no
+    error or "prog" didn't match, or 1 if the command returned
+    an error.  Refer to editrc(5) for more information. (`el_parse`)
 - `#push(str)`
   - Pushes str back onto the input stream.  This is used by the macro
     expansion mechanism.  Refer to the description of bind -s in
