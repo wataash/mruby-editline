@@ -452,7 +452,7 @@ mrb_mruby_editline_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, cls, "gets", mrb_editline_gets, MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "initialize", mrb_editline_init, MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "insertstr", mrb_editline_insertstr, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, cls, "line", mrb_editline_line, MRB_ARGS_REQ(0));
+  mrb_define_method(mrb, cls, "line", mrb_editline_line, MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "parse", mrb_editline_parse, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, cls, "push", mrb_editline_push, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, cls, "resize", mrb_editline_resize, MRB_ARGS_NONE());
