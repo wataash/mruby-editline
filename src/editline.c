@@ -13,6 +13,23 @@
 #include "mruby/value.h"
 #include "mruby/variable.h"
 
+// e
+// #define EL_DEBUG
+#ifdef EL_DEBUG
+#define EL_DPRINTF(fmt, ...) do {                                             \
+  fprintf(stderr, fmt, ##__VA_ARGS__);                                        \
+} while (0)
+// with header
+// __DATE__
+#define EL_DPRINTF_H(fmt, ...) do {                                           \
+  fprintf(stderr, "%s:%d %s() " fmt,                                          \
+          __FILE__, __LINE__, __func__, ##__VA_ARGS__);                       \
+} while (0)
+#else
+#define EL_DPRINTF(fmt, ...) ((void)0)
+#define EL_DPRINTF_H(fmt, ...) ((void)0)
+#endif
+
 struct mrb_editline {
   mrb_state *mrb;
   mrb_value self;
@@ -23,6 +40,7 @@ struct mrb_editline {
 static void
 mrb_editline_free(mrb_state *mrb, void *ptr)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel = ptr;
 
   mel->mrb = NULL;
@@ -72,6 +90,7 @@ const static callback_t userfunction_callback_list[] = {
 static unsigned char
 userfunction_callback(EditLine *e, int ch, int no)
 {
+  EL_DPRINTF_H("\n");
   mrb_value ary, proc, ret, tuple;
   struct mrb_editline *mel;
 
@@ -89,9 +108,11 @@ userfunction_callback(EditLine *e, int ch, int no)
   return mrb_fixnum(ret);
 }
 
+// el = EditLine.new
 mrb_value
 mrb_editline_init(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel;
   HistEvent hev;
   mrb_value ary;
@@ -102,7 +123,19 @@ mrb_editline_init(mrb_state *mrb, mrb_value self)
   mel->e = el_init("mruby", stdin, stdout, stderr);
   mel->h = NULL;
   DATA_TYPE(self) = &mrb_editline_type;
+  {
+    // expanded to:
+    RDATA(self)->type = &mrb_editline_type;
+    ((struct RData *)mrb_ptr(self))->type = &mrb_editline_type;
+    ((struct RData *)(self.value.p))->type = &mrb_editline_type; // unused: self.value,{f,i}
+    (void)(struct RData *)(self.value.p);
+  }
   DATA_PTR(self) = mel;
+  {
+    // expanded to:
+    RDATA(self)->data = mel;
+    ((struct RData*)(self.value.p))->data = mel;
+  }
 
   el_set(mel->e, EL_CLIENTDATA, mel);
   el_set(mel->e, EL_EDITOR, "emacs");
@@ -114,14 +147,18 @@ mrb_editline_init(mrb_state *mrb, mrb_value self)
   history(mel->h, &hev, H_SETSIZE, 100);
   el_set(mel->e, EL_HIST, history, mel->h);
 
+  // ? :userfunctions -> an array [10]
+  // no free?
   ary = mrb_ary_new_capa(mrb, USERFUNCTIONS);
   mrb_iv_set(mrb, self, mrb_intern_lit(mel->mrb, "userfunctions"), ary);
   return self;
 }
 
+// #deletestr(str)
 mrb_value
 mrb_editline_deletestr(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel;
   mrb_int count;
 
@@ -131,9 +168,11 @@ mrb_editline_deletestr(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+// #gets -> String|nil
 mrb_value
 mrb_editline_gets(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   HistEvent hev;
   struct mrb_editline *mel;
   int count;
@@ -141,14 +180,22 @@ mrb_editline_gets(mrb_state *mrb, mrb_value self)
   size_t l, i;
 
   mel = DATA_PTR(self);
+  EL_DPRINTF_H("going into el_gets()\n");
   line = el_gets(mel->e, &count);
+  // ??? line: NULL when using debugger
+  EL_DPRINTF_H("el_gets() returned ");
   if (line == NULL) {
+    EL_DPRINTF("line == NULL ");
     if (count == -1) {
+      EL_DPRINTF("count == -1\n");
       mrb_sys_fail(mrb, "el_gets");
     } else {
+      EL_DPRINTF("count: %d\n", count);
       return mrb_nil_value();
     }
   }
+  EL_DPRINTF("count: %d\n", count);
+  EL_DPRINTF("line: `%s`\n", line);
 
   l = strlen(line);
   for (i = 0; i < l; i++) {
@@ -161,9 +208,11 @@ mrb_editline_gets(mrb_state *mrb, mrb_value self)
   return mrb_str_new_cstr(mrb, line);
 }
 
+// #get_gettc(name) -> String|Fixnum
 mrb_value
 mrb_editline_get_gettc(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel;
   int i, val_is_int, tval;
   char *cstr, *tstr;
@@ -185,11 +234,13 @@ mrb_editline_get_gettc(mrb_state *mrb, mrb_value self)
   }
 
   if (val_is_int) {
+    EL_DPRINTF_H("going into el_gets()\n");
     if (el_get(mel->e, EL_GETTC, cstr, &tval) == -1) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid capability name");
     }
     return mrb_fixnum_value((mrb_int)tval);
   } else {
+    EL_DPRINTF_H("going into el_gets()\n");
     if (el_get(mel->e, EL_GETTC, cstr, &tstr) == -1) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid capability name");
     }
@@ -197,9 +248,11 @@ mrb_editline_get_gettc(mrb_state *mrb, mrb_value self)
   }
 }
 
+// #insertstr(str) -> Fixnum
 mrb_value
 mrb_editline_insertstr(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel;
   mrb_int ret;
   mrb_value str;
@@ -210,9 +263,11 @@ mrb_editline_insertstr(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(ret);
 }
 
+// #line -> [String, Fixnum]
 mrb_value
 mrb_editline_line(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel;
   const LineInfo *li;
   mrb_value ary;
@@ -225,9 +280,11 @@ mrb_editline_line(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
+// #parse(argv) -> Fixnum
 mrb_value
 mrb_editline_parse(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel;
   mrb_int i, argc;
   mrb_value ary;
@@ -248,9 +305,11 @@ mrb_editline_parse(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(ret);
 }
 
+// #push(str)
 mrb_value
 mrb_editline_push(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel;
   char *str;
 
@@ -260,9 +319,11 @@ mrb_editline_push(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+// #resize
 mrb_value
 mrb_editline_resize(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel;
 
   mel = DATA_PTR(self);
@@ -273,17 +334,24 @@ mrb_editline_resize(mrb_state *mrb, mrb_value self)
 static char *
 cb_prompt(EditLine *e)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel;
   mrb_value s;
 
+  EL_DPRINTF_H("going into el_gets()\n");
   el_get(e, EL_CLIENTDATA, &mel);
+  EL_DPRINTF_H("el_gets() returned\n");
   s = mrb_iv_get(mel->mrb, mel->self, mrb_intern_lit(mel->mrb, "prompt"));
+  // return "hogeprompt>";
   return mrb_str_to_cstr(mel->mrb, s);
 }
 
+// #set_addfn(name, help, &proc)
+// el.set_addfn("mruby-editline-sample-complete", "complete a word") do |ch|
 mrb_value
 mrb_editline_set_addfn(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   mrb_value ary, block, name, help, tri;
   mrb_int helplen, idx, namelen;
   struct mrb_editline *mel;
@@ -295,6 +363,7 @@ mrb_editline_set_addfn(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "too many user-defined functions");
   }
 
+  // if no block () -> block: mrb_nil_value()
   mrb_get_args(mrb, "ss&", &nameptr, &namelen, &helpptr, &helplen, &block);
 
   name = mrb_str_new(mrb, nameptr, namelen);
@@ -314,9 +383,11 @@ mrb_editline_set_addfn(mrb_state *mrb, mrb_value self)
   return mrb_true_value();
 }
 
+// #set_bind(key, proc)
 mrb_value
 mrb_editline_set_bind(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel;
   mrb_value key, command;
   int ret;
@@ -331,14 +402,21 @@ mrb_editline_set_bind(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(ret);
 }
 
+// Editline#set_prompt(proc, c=nil)
+// el.set_prompt "prompt> "
 mrb_value
 mrb_editline_set_prompt(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel;
   mrb_value esc, str;
 
   mel = DATA_PTR(self);
-  esc = mrb_nil_value();
+
+  // TODO: unneeded?
+
+
+  // str -> MRB_TT_STRING
   mrb_get_args(mrb, "S|S", &str, &esc);
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "prompt"), str);
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "prompt_esc"), esc);
@@ -347,12 +425,43 @@ mrb_editline_set_prompt(mrb_state *mrb, mrb_value self)
   } else {
     el_set(mel->e, EL_PROMPT_ESC, cb_prompt, RSTRING_PTR(esc)[0]);
   }
+
+#if 0
+  // (struct RString*)esc.value.p.tt: MRB_TT_STRING
+  // (struct RString*)esc.value.p.flags: 608 (0x260, not MRB_STR_EMBED)
+  // (struct RString*)esc.value.p.as.ary: "foo"
+  // (struct RString*)esc.value.p.as.heap.str: NULL
+  esc = mrb_str_new(mrb, "foo", 9);
+  if (mrb_nil_p(esc)) {
+  } else {
+    (void) RSTRING_PTR(esc);
+    (void) RSTR_PTR(RSTRING(esc));
+    RSTR_EMBED_P(RSTRING(esc)) ? RSTRING(esc)->as.ary : RSTRING(esc)->as.heap.ptr;
+    // if (RSTR_EMBED_P(RSTRING(esc))) {
+    if (RSTRING(esc)->flags & MRB_STR_EMBED) {
+      (void) RSTRING(esc)->as.ary;
+      (void) ((struct RString*)(esc.value.p))->as.ary;
+    } else {
+      (void) RSTRING(esc)->as.heap.ptr;
+      (void) ((struct RString*)(esc.value.p))->as.heap.ptr;
+    }
+    // where
+    (void) RSTRING(esc);
+    (void) mrb_str_ptr(esc);
+    (void) (struct RString*)mrb_ptr(esc);
+    (void) (struct RString*)esc.value.p;
+
+  }
+#endif /* 0 */
+
   return self;
 }
 
+// #set_signal(flag) -> Fixnum
 mrb_value
 mrb_editline_set_signal(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel;
   mrb_int flag;
   int ret;
@@ -363,9 +472,11 @@ mrb_editline_set_signal(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value((mrb_int)ret);
 }
 
+// #set_setty(*args) -> Fixnum
 mrb_value
 mrb_editline_set_setty(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   struct mrb_editline *mel;
   mrb_value *argv;
   mrb_int argc, i;
@@ -379,6 +490,7 @@ mrb_editline_set_setty(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "too many arguments (max is 16)");
   }
   for (i = 0; i < argc; i++) {
+    // "mrb_to_str is recommended"
     cargv[i] = mrb_str_to_cstr(mrb, mrb_str_to_str(mrb, argv[i]));
   }
   for (; i < 16; i++) {
@@ -394,6 +506,7 @@ mrb_editline_set_setty(mrb_state *mrb, mrb_value self)
 static mrb_noreturn void
 mrb_history_raise(mrb_state *mrb, const HistEvent *hev)
 {
+  EL_DPRINTF_H("\n");
   struct RClass *cls;
   mrb_value argv[2];
 
@@ -406,9 +519,12 @@ mrb_history_raise(mrb_state *mrb, const HistEvent *hev)
   mrb_exc_raise(mrb, mrb_obj_new(mrb, cls, 2, argv));
 }
 
+// TODO: README.md
+// #history_load(str)
 mrb_value
 mrb_editline_history_load(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   HistEvent hev;
   struct mrb_editline *mel;
   int ret;
@@ -423,9 +539,12 @@ mrb_editline_history_load(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(ret);
 }
 
+// TODO: README.md
+// #history_save(str)
 mrb_value
 mrb_editline_history_save(mrb_state *mrb, mrb_value self)
 {
+  EL_DPRINTF_H("\n");
   HistEvent hev;
   struct mrb_editline *mel;
   int ret;
@@ -443,10 +562,14 @@ mrb_editline_history_save(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_editline_gem_init(mrb_state *mrb)
 {
+  EL_DPRINTF_H("\n");
   struct RClass *cls;
 
   cls = mrb_define_class(mrb, "EditLine", mrb->object_class);
+  // cls->flags: 0 -> 21
   MRB_SET_INSTANCE_TT(cls, MRB_TT_DATA);
+  cls->flags = (cls->flags & ~MRB_INSTANCE_TT_MASK) | (char)MRB_TT_DATA; // expanded
+  cls->flags = (cls->flags & ~0xFF) | (char)MRB_TT_DATA; // expanded
   mrb_define_method(mrb, cls, "deletestr", mrb_editline_deletestr, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, cls, "get_gettc", mrb_editline_get_gettc, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, cls, "gets", mrb_editline_gets, MRB_ARGS_NONE());
@@ -467,6 +590,9 @@ mrb_mruby_editline_gem_init(mrb_state *mrb)
 
 #define define_el_const(SYM) mrb_define_const(mrb, cls, #SYM, mrb_fixnum_value(SYM))
   define_el_const(CC_NORM);
+  // EditLine::CC_NORM
+  // expanded to:
+  // mrb_define_const(mrb, cls, "CC_NORM", mrb_fixnum_value(0));
   define_el_const(CC_NEWLINE);
   define_el_const(CC_EOF);
   define_el_const(CC_ARGHACK);
@@ -481,4 +607,5 @@ mrb_mruby_editline_gem_init(mrb_state *mrb)
 void
 mrb_mruby_editline_gem_final(mrb_state *mrb)
 {
+  EL_DPRINTF_H("\n");
 }
