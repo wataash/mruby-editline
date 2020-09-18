@@ -465,7 +465,7 @@ mrb_mruby_editline_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, cls, "history_load", mrb_editline_history_load, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, cls, "history_save", mrb_editline_history_save, MRB_ARGS_REQ(1));
 
-#define define_el_const(SYM) mrb_define_const(mrb, cls, #SYM, mrb_fixnum_value(SYM));
+#define define_el_const(SYM) mrb_define_const(mrb, cls, #SYM, mrb_fixnum_value(SYM))
   define_el_const(CC_NORM);
   define_el_const(CC_NEWLINE);
   define_el_const(CC_EOF);
