@@ -236,7 +236,7 @@ mrb_editline_parse(mrb_state *mrb, mrb_value self)
 
   mel = DATA_PTR(self);
   mrb_get_args(mrb, "A", &ary);
-  argc = mrb_ary_len(mrb, ary);
+  argc = RARRAY_LEN(ary);
   if (argc > 16) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "too many argments (max: 16)");
   }
